@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.IO;
 
 public class MainManager : MonoBehaviour
 {
+    public Text BestScoreText;
+
     public Brick BrickPrefab;
     public int LineCount = 6;
     public Rigidbody Ball;
@@ -18,7 +21,6 @@ public class MainManager : MonoBehaviour
     
     private bool m_GameOver = false;
 
-    
     // Start is called before the first frame update
     void Start()
     {
@@ -36,6 +38,7 @@ public class MainManager : MonoBehaviour
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
+        UpdateBestScore();
     }
 
     private void Update()
@@ -72,5 +75,41 @@ public class MainManager : MonoBehaviour
     {
         m_GameOver = true;
         GameOverText.SetActive(true);
+        UpdateBestScore();
+    }
+
+    void UpdateBestScore()
+    {
+        // 当前用户
+        PlayerData currentData = new PlayerData();
+        PlayerData data = currentData;
+        currentData.Name = GameManager.Instance.PlayerName;
+        currentData.Score = m_Points;
+        // 读取文件保存最佳分数
+        string json;
+        string filename = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(filename))
+        {
+            json = File.ReadAllText(filename);
+            // 保存用户
+            data = JsonUtility.FromJson<PlayerData>(json);
+            if (currentData.Score > data.Score)
+            {
+                data = currentData;
+                SaveJson(filename, data);
+            }
+        }
+        else if (data.Score > 0)
+        {
+            SaveJson(filename, data);
+        }
+        BestScoreText.text = $"Best Score : {data.Name} : {data.Score}";
+    }
+
+    void SaveJson(string filename, PlayerData data)
+    {
+        string json = JsonUtility.ToJson(data);
+        Debug.Log(json);
+        File.WriteAllText(filename, json);
     }
 }
